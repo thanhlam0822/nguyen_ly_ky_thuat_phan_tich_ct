@@ -1,0 +1,63 @@
+# Dockerfile for running BugsInPy with Python 3.8 (best compatibility)
+# Using bookworm (Debian 12) which still has working repos
+FROM python:3.8-slim-bookworm
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    ca-certificates \
+    dos2unix \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install common Python test dependencies and project-specific packages
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install pytest pytest-cov pytest-asyncio pytest-aiohttp pytest-httpbin \
+    nose tox coverage mock six requests httpx \
+    click jinja2 pyyaml \
+    aiohttp tornado twisted \
+    colorama pygments chardet \
+    # httpie dependencies
+    httpie requests-toolbelt defusedxml multidict requests-unixsocket \
+    # PySnooper dependencies  
+    python-toolbox \
+    # thefuck dependencies
+    psutil pyte decorator thefuck \
+    # black dependencies
+    black pathspec mypy-extensions platformdirs tomli typing-extensions \
+    # fastapi dependencies
+    fastapi starlette uvicorn pydantic \
+    # tqdm
+    tqdm \
+    # luigi
+    luigi boto3 \
+    # youtube-dl (basic)
+    youtube-dl \
+    # sanic
+    sanic \
+    # ansible (basic)
+    ansible \
+    && pip cache purge || true
+
+# Set up BugsInPy
+ENV BUGSINPY_HOME="/bugsinpy"
+ENV PATH="$BUGSINPY_HOME/framework/bin:$PATH"
+
+# Copy BugsInPy framework
+COPY data/BugsInPy /bugsinpy
+
+# Make scripts executable
+RUN chmod +x /bugsinpy/framework/bin/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy the collection script
+COPY scripts/docker/collect_failures.py /collect_failures.py
+
+# Default command
+CMD ["python", "/collect_failures.py"]
+

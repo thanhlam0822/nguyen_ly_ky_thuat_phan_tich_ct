@@ -1,0 +1,39 @@
+# Dockerfile for BugsInPy projects requiring Python 3.7
+# Let bugsinpy-compile handle per-bug dependencies
+FROM python:3.7-slim-bullseye
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    curl \
+    ca-certificates \
+    dos2unix \
+    build-essential \
+    libffi-dev \
+    libssl-dev \
+    libhdf5-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install basic Python test tools (bugsinpy-compile will install project-specific deps)
+RUN pip install --upgrade pip==21.3.1 setuptools==59.6.0 wheel && \
+    pip install pytest pytest-cov mock six requests pyyaml
+
+# Set up BugsInPy
+ENV BUGSINPY_HOME="/bugsinpy"
+ENV PATH="$BUGSINPY_HOME/framework/bin:$PATH"
+
+# Copy BugsInPy framework
+COPY data/BugsInPy /bugsinpy
+
+# Make scripts executable
+RUN chmod +x /bugsinpy/framework/bin/*
+
+# Set working directory
+WORKDIR /workspace
+
+# Copy the collection script
+COPY scripts/docker/collect_failures_py37.py /collect_failures.py
+
+# Default command
+CMD ["python", "/collect_failures.py"]
